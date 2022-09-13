@@ -18,7 +18,11 @@ pip install -r requirements.txt
 ```
 
 4. Fill your Tiktok account with Facebook in ```.env``` file (You need a activated Tiktok account with Facebook).
-5. Run:
+```
+ACCOUNT_TIKTOK=<your nickname>
+PASSWORD_TIKTOK=<password>
+```
+6. Run:
 ```
 python main.py --unique true --limit 30
 ```
