@@ -17,7 +17,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-4. Fill your Tiktok account with Facebook in ```.env``` file (You need a activated Tiktok account with Facebook).
+4. Create ```.env``` file and fill your Tiktok account with Facebook in ```.env``` file (You need a activated Tiktok account with Facebook):
 ```
 ACCOUNT_TIKTOK=<your nickname>
 PASSWORD_TIKTOK=<password>
