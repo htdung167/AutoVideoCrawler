@@ -1,3 +1,4 @@
+from enum import unique
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -13,6 +14,7 @@ from TikTokApi import TikTokApi
 from dotenv import load_dotenv
 import argparse
 import pyautogui
+from pytube import YouTube, Search
 
 def check_exists_by_xpath(driver, xpath):
     try:
@@ -51,6 +53,8 @@ def tiktok(driver, keywords, limit=50, login_account=("", ""), unique=True):
 
     # manual login
     gg_button = driver.find_element(By.XPATH, '//*[@id="loginContainer"]/div/div/div[3]')
+    # //*[@id="loginContainer"]/div/div/div[4]
+    
     gg_button.click()
     print("Waiting 30s for manually login ...")
     time.sleep(5)
@@ -91,12 +95,15 @@ def tiktok(driver, keywords, limit=50, login_account=("", ""), unique=True):
         time.sleep(2)
 
         # Scroll and click "Xem thêm"
-        for i in range(load_more):  
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  
-            time.sleep(1)
-            xemthem_button_xpath = '//*[@id="app"]/div[2]/div[2]/div[2]/div[2]/button'
-            if check_exists_by_xpath(driver=driver, xpath=xemthem_button_xpath):
-                driver.find_element(By.XPATH, xemthem_button_xpath).click()
+        try:
+            for i in range(load_more):  
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  
+                time.sleep(1)
+                xemthem_button_xpath = '//*[@id="app"]/div[2]/div[2]/div[2]/div[2]/button'
+                if check_exists_by_xpath(driver=driver, xpath=xemthem_button_xpath):
+                    driver.find_element(By.XPATH, xemthem_button_xpath).click()
+        except:
+            pass
         for k in range(5):
             driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
             time.sleep(0.1)      
@@ -142,7 +149,7 @@ def tiktok(driver, keywords, limit=50, login_account=("", ""), unique=True):
                 down_button_xpath = '//*[@id="app"]/div[2]/div[2]/div[2]/div[3]/div[1]/button[3]'
                 if check_exists_by_xpath(driver=driver, xpath=down_button_xpath):
                     driver.find_element(By.XPATH, down_button_xpath).click()
-                    time.sleep(random.randint(2, 5) / 10)
+                    time.sleep(random.randint(1, 10) / 10 + 1)
                 else:
                     break
             except:
@@ -168,26 +175,117 @@ def tiktok(driver, keywords, limit=50, login_account=("", ""), unique=True):
     driver.close()
 
 
+def youtube(driver, keywords, limit=50, unique=True):
+    first_keyword = True
+    url = "https://www.youtube.com/"
+    driver.get(url)
+    time.sleep(2)
+    with open("./download_youtube/list_url.txt") as f:
+        lst_url_old = f.read().split("\n")
+
+    for keyword in keywords:
+        lst_url = []
+        # Check folder
+        save_path = f"./download_youtube/{keyword}"
+        if os.path.exists(save_path):
+            continue
+
+        if first_keyword:
+            first_keyword = False
+        else:
+            driver.find_element(By.XPATH, '/html/body/ytd-app/div[1]/div/ytd-masthead/div[3]/div[1]/ytd-topbar-logo-renderer/a/div')
+        
+        # Fill search bar
+        search_elem = driver.find_element(By.XPATH, '/html/body/ytd-app/div[1]/div/ytd-masthead/div[3]/div[2]/ytd-searchbox/form/div[1]/div[1]/input')
+        search_elem.send_keys(Keys.CONTROL, 'a')
+        search_elem.send_keys(keyword)
+
+        # Click search button
+        driver.find_element(By.XPATH, '//*[@id="search-icon-legacy"]').click()
+        
+        # Scroll 10 times
+        for i in range(5):
+            try:
+                for k in range(5):
+                    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
+                time.sleep(1)
+            except:
+                continue
+
+        # get links
+        try:
+            if len(lst_url) >= limit:
+                break
+            id_video = 1
+            scroll_patient = 0
+            while True:
+                try:
+                    url_video = driver.find_element(By.XPATH, f"/html/body/ytd-app/div[1]/ytd-page-manager/ytd-search/div[1]/ytd-two-column-search-results-renderer/div/ytd-section-list-renderer/div[2]/ytd-item-section-renderer/div[3]/ytd-video-renderer[{id_video}]/div[1]/ytd-thumbnail/a").get_attribute("href")
+                    scroll_patient = 0
+                except:
+                    if scroll_patient >= 5:
+                        break
+                    for k in range(10):
+                        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
+                        scroll_patient += 1
+                    time.sleep(1)
+                if unique:
+                    if url_video not in lst_url_old:
+                        lst_url.append(url_video)
+                else:
+                    lst_url.append(url_video)
+                id_video += 1
+        except:
+            pass
+                
+            
+        print(lst_url)
+        print("Downloading...")
+
+        # Save for unique
+        with open("./download_youtube/list_url.txt", "a") as f:
+            f.write("\n".join(lst_url))
+            f.write("\n")
+
+        # Download video
+        for url_video in lst_url:
+            try:
+                yt = YouTube(url_video)
+            except:
+                print(f"Cannot download {url_video}")
+                continue
+            ytt = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+            print(f"Downloading {yt.title}")
+            try:
+                ytt.download(save_path)
+                print(f"Done {yt.title}!")
+            except:
+                print(f"Cannot download {yt.title}")
+
+    print("Done!")
+
+    
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--unique", type=str, default="true", help="Url of video in site is different.")
     parser.add_argument("--limit", type=int, default=50, help="Maximum count of videos to download per keyword.")
-    # parser.add_argument("--tiktok", type=str, default="true", help="Download from tiktok.com")
+    parser.add_argument("--type", type=str, default="tiktok", help="Download from tiktok or youtube")
     # parser.add_argument("--youtube", type=str, default="true", help="Download from youtube.com")
     args = parser.parse_args()
-
-    _unique = True if str(args.unique).lower() else False
+    _unique = True if str(args.unique).lower() == 'true' else False
     _limit = int(args.limit)
-
-    PATH = "./chromedriver/chromedriver.exe"
-
-    load_dotenv()
-    account_tiktok = os.getenv('ACCOUNT_TIKTOK')
-    password_tiktok = os.getenv('PASSWORD_TIKTOK')
-
-    # create webdriver object
-
+    _type = str(args.type)
+    if _type == "tiktok":
+        _tiktok = True
+        _youtube = False
+    elif _type == "youtube":
+        _tiktok = False
+        _youtube = True
+    else:
+        _tiktok = False
+        _youtube = False
     #################################################################
     # Note: 
     # conda create -n Crawl_Tiktok_env
@@ -196,6 +294,8 @@ if __name__=="__main__":
     # pip install -r requirement.txt
     # conda activate Crawl_Tiktok_env
     ##################################################################
+
+    PATH = "./chromedriver/chromedriver.exe"
     chrome_options = Options()
     # chrome_options.add_argument("start-maximized")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -211,14 +311,32 @@ if __name__=="__main__":
         fix_hairline=True,
         )
 
-    if not os.path.exists("./download"):
-        os.mkdir("./download")
-        with open("./download/list_url.txt", 'w', encoding="UTF-8") as f:
-            f.write("hello\n")
+    # _tiktok = False
+    if _tiktok:
+        load_dotenv()
+        account_tiktok = os.getenv('ACCOUNT_TIKTOK')
+        password_tiktok = os.getenv('PASSWORD_TIKTOK')
+        if not os.path.exists("./download"):
+            os.mkdir("./download")
+            with open("./download/list_url.txt", 'w', encoding="UTF-8") as f:
+                f.write("hello_tiktok\n")
+        
+
+    if _youtube:
+        if not os.path.exists("./download_youtube"):
+            os.mkdir("./download_youtube")
+            with open("./download_youtube/list_url.txt", 'w', encoding="UTF-8") as f:
+                f.write("hello_youtube\n")
 
     with open("./keywords.txt", "r", encoding='UTF-8') as f:
-        keywords = f.read()
+        keywords = f.read().split("\n")
 
-    keywords = keywords.split("\n")
     print(keywords)
-    tiktok(driver, keywords, limit=_limit, unique=_unique, login_account=(account_tiktok, password_tiktok))
+
+
+    # Runnnn
+    if _tiktok:
+        tiktok(driver, keywords, limit=_limit, unique=_unique, login_account=(account_tiktok, password_tiktok))
+    
+    if _youtube:
+        youtube(driver, keywords, limit=_limit, unique=_unique)

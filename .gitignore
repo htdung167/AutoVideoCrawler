@@ -1,2 +1,9 @@
 .env
 download
+download_youtube
+data_collection
+collect_data.py
+count_data.py
+test.py
+count_video.py
+Note.txt
