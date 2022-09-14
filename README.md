@@ -22,11 +22,12 @@ pip install -r requirements.txt
 ACCOUNT_TIKTOK=<your nickname>
 PASSWORD_TIKTOK=<password>
 ```
+5. Write the keywords in ```keywords.txt``` file
 6. Run:
 ```
 python main.py --unique true --limit 30
 ```
-6.Files will be downloaded to 'download' directory.
+7.Files will be downloaded to 'download' directory.
 
 # Arguments
 ```
