@@ -29,7 +29,7 @@ python main.py --unique true --limit 30 --type tiktok
 ```
 7.Files will be downloaded to 'download' directory.
 
-# How to download Youtube video
+# How to download Youtube videos
 1. Install Chrome (notice the version of chrome driver in chromedriver folder)
 2. Git clone:
 ```
